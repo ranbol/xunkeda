@@ -3,14 +3,19 @@ package com.example.entity.modual.AppLogin;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.example.entity.dao.AppLoginMapper;
+import com.example.entity.po.AppCodeEfficacy;
 import com.example.entity.po.AppLogin;
 import com.example.entity.utils.codeUtils;
+import com.example.entity.utils.dateUtils;
 import com.example.entity.utils.emptyUtils;
 import com.example.entity.utils.httpUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,7 +26,7 @@ public class appLoginServcieImpl implements appLoginService {
 
     private static String MESSAGE_URL="";
 
-    private static ArrayList<Map<String,String>> PHONE_CODES;
+    private static ArrayList<AppCodeEfficacy> PHONE_CODES;
 
     /**
      * (APP) 验证登录
@@ -36,17 +41,15 @@ public class appLoginServcieImpl implements appLoginService {
        }
        if(phoneCode.isEmpty()){map.put("code","1");map.put("msg","请输入验证码");return  map;}
 
-        for (Map<String, String> code : PHONE_CODES) {
-           if(code.get("phoneNum").equals(phoneNum)&&code.get("phoneCode").equals(phoneCode)){
+        for (AppCodeEfficacy code : PHONE_CODES) {
 
-           }
         }
 
         return null;
     }
 
     /**
-     *
+     *(APP) 用户登录账号注册
      * @param appLogin
      * @param phoneCode
      * @return
@@ -72,38 +75,38 @@ public class appLoginServcieImpl implements appLoginService {
             map.put("msg","密码格式错误！");
             return map;
         }
-        for (Map<String, String> stringMap : PHONE_CODES) {
-            if(
-                    stringMap.get("phoneNum").equals(appLogin.getLogin_tell())&&
-                    stringMap.get("phoneCode").equals(phoneCode)
-            ){
-                Integer num=appLoginMapper.insert(appLogin);
-                if (num==1){
-                    //移出静态数组中的项
-                    PHONE_CODES.remove(stringMap);
-                    map.put("code",0);
-                    map.put("msg","注册成功！");
+        for ( AppCodeEfficacy stringMap : PHONE_CODES) {
+            Date outTime=dateUtils.getDatePlusMinute(stringMap.getCodeTime(),60);
+            Date date=new Date();
+            if (outTime.getTime()>date.getTime()){
+                map.put("code",1);
+                map.put("msg","验证码超时，请重新获取！");
+                return map;
+            }else {
+                if(stringMap.getTellNumber().equals(appLogin.getLogin_tell())&&stringMap.getTellCode().equals(phoneCode)){
+                    Integer num=appLoginMapper.insert(appLogin);
+                    if (num==1){
+                        //移出静态数组中的项
+                        PHONE_CODES.remove(stringMap);
+                        map.put("code",0);
+                        map.put("msg","注册成功！");
+                        return map;
+                    }
+                    else {
+                        map.put("code",1);
+                        map.put("msg","注册失败");
+                        return map;
+                    }
+                }else {
+                    map.put("code",1);
+                    map.put("msg","验证码错误");
                     return map;
                 }
             }
         }
-
-
-
-       /* if (appLogin.getLogin_name().isEmpty()){
-
-        }
-        if (appLogin.getLogin_password().isEmpty()){
-
-        }
-        if (appLogin.getLogin_tell().isEmpty()){
-
-        }
-        if (phoneCode.isEmpty()){
-
-        }*/
-
-        return null;
+        map.put("code",1);
+        map.put("msg","系统错误");
+        return map;
     }
 
     /**
@@ -116,15 +119,29 @@ public class appLoginServcieImpl implements appLoginService {
         if(phoneNum.isEmpty()||phoneNum.length()!=11){ return false; }
         String codeValue= codeUtils.getPhoneCodeValue(6);
         String param="phoneNUM="+phoneNum+"&codeValue="+codeValue;
+        System.out.println("codeValue:"+codeValue);
+/*
+       // 三方短信发送
         String sendPost = httpUtils.sendPost(MESSAGE_URL, param, false);
         Object object=JSON.parseObject(sendPost);
+
+        //验证设置
+        ((JSONObject) object).put("code",0);
+
         if (((JSONObject) object).get("code")=="0"){
-            Map<String,String> map=new HashMap<>();
-            map.put("phoneNum",phoneNum);
-            map.put("codeValue",codeValue);
-            PHONE_CODES.add(map);
+             AppCodeEfficacy codeEfficacy=new AppCodeEfficacy();
+             codeEfficacy.setCodeTime(new Date());
+             codeEfficacy.setTellNumber(phoneNum);
+             codeEfficacy.setTellCode(codeValue);
+             PHONE_CODES.add(codeEfficacy);
             return true;
         }
-        return false;
+        return false;*/
+        AppCodeEfficacy codeEfficacy=new AppCodeEfficacy();
+        codeEfficacy.setCodeTime(new Date());
+        codeEfficacy.setTellNumber(phoneNum);
+        codeEfficacy.setTellCode(codeValue);
+        PHONE_CODES.add(codeEfficacy);
+        return true;
     }
 }
