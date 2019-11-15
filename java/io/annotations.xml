@@ -1,0 +1,5 @@
+<root>
+    <item name='java.io.UnsupportedEncodingException'>
+        <annotation name='java.lang.Deprecated'/>
+    </item>
+</root>
