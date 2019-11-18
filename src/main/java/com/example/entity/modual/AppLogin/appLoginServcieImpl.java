@@ -26,7 +26,7 @@ public class appLoginServcieImpl implements appLoginService {
 
     private static String MESSAGE_URL="";
 
-    private static ArrayList<AppCodeEfficacy> PHONE_CODES;
+    private static ArrayList<AppCodeEfficacy> PHONE_CODES =new ArrayList<>();
 
     /**
      * (APP) 验证登录
@@ -64,7 +64,7 @@ public class appLoginServcieImpl implements appLoginService {
             return map;
         }
         /*验证电话位数*/
-        if (phoneCode.length()!=11){
+        if (appLogin.getLogin_tell().length()!=11){
             map.put("code",1);
             map.put("msg","请输入正确的电话号码！");
             return map;
@@ -78,7 +78,9 @@ public class appLoginServcieImpl implements appLoginService {
         for ( AppCodeEfficacy stringMap : PHONE_CODES) {
             Date outTime=dateUtils.getDatePlusMinute(stringMap.getCodeTime(),60);
             Date date=new Date();
-            if (outTime.getTime()>date.getTime()){
+            System.out.println("outTime"+outTime.getTime());
+            System.out.println("nowTime"+date.getTime());
+            if (outTime.getTime()<date.getTime()){
                 map.put("code",1);
                 map.put("msg","验证码超时，请重新获取！");
                 return map;
